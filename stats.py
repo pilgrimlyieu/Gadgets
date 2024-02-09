@@ -7,15 +7,15 @@ import sys
 from collections import Counter
 from fnmatch import fnmatch
 
-# 定义 Perl 正则表达式字符集库
+# 定义不同字符集
 libraries = {
-    "c": r"\w",  # 所有可打印字符
-    "cp": r"\S",  # 所有可打印字符和空格字符
+    "c": r"[^\W]",  # 所有可打印字符
+    "cp": r"[^\W]|[\s]",  # 所有可打印字符和空格字符
     "cn": r"[\u4e00-\u9fff]",  # 所有常用汉字
     "en": r"[a-zA-Z]",  # 所有英文字母
-    "alnum": r"\w",  # 字母和数字字符
-    "num": r"\d",  # 所有数字
-    "sp": r"\s",  # 空白字符
+    "alnum": r"[a-zA-Z\d]",  # 字母和数字字符
+    "num": r"[\d]",  # 所有数字
+    "sp": r"[\s]",  # 空白字符
     "punc": r"[^\w\s]",  # 标点字符
 }
 
@@ -53,11 +53,11 @@ def main():
     parser.add_argument('-l', '--library', metavar="library", type=str, choices=libraries.keys(), help='The character set library to use.')
     parser.add_argument('-f', '--format', metavar="format", type=str, default="", help='The file formats to process.')
     parser.add_argument('-o', '--output', metavar="output", type=str, default="", help='The output file.')
-    parser.add_argument('-r', '--reverse', action='store_true', help='Reverse the order of the output.')
-    parser.add_argument('-R', '--recursive', action='store_true', help='Recursively process directories.')
-    parser.add_argument('-S', '--show-space', action='store_true', help='Show whitespace characters.')
-    parser.add_argument('-i', '--case-sensitive', action='store_true', help='Ignore case when matching.')
-    parser.add_argument('-v', '--verbose', action='store_true', help='Display verbose output.')
+    parser.add_argument('-r', '--reverse', action='store_true', default=False, help='Reverse the order of the output.')
+    parser.add_argument('-R', '--recursive', action='store_true', default=False, help='Recursively process directories.')
+    parser.add_argument('-S', '--show-space', action='store_true', default=False, help='Show whitespace characters.')
+    parser.add_argument('-i', '--case-sensitive', action='store_true', default=False, help='Ignore case when matching.')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Display verbose output.')
     parser.add_argument('paths', nargs='+', help='The files or directories to process.')
     args = parser.parse_args()
 
@@ -91,11 +91,13 @@ def main():
     most_common = counter.most_common(args.number if args.number > 0 else None)
     most_common.sort(key=lambda x: (x[1], x[0]) if args.reverse else (-x[1], x[0]))
 
-    with open(args.output, 'w', encoding='utf-8') if args.output else sys.stdout as f:
-        for i, (char, count) in enumerate(most_common, start=1):
-            escape_dict = {" ": r"\s", "\n": r"\n", "\t": r"\t", "\r": r"\r", "\f": r"\f", "\v": r"\v"}
-            char = escape_dict.get(char, char)
-            print(f"{i}\t{char}\t{count}", file=f)
+    f = open(args.output, 'w', encoding='utf-8') if args.output else sys.stdout
+    for i, (char, count) in enumerate(most_common, start=1):
+        escape_dict = {" ": r"\s", "\n": r"\n", "\t": r"\t", "\r": r"\r", "\f": r"\f", "\v": r"\v", "\b": r"\b"}
+        char = escape_dict.get(char, char)
+        print(f"{i}\t{char}\t{count}", file=f)
+    if args.output:
+        f.close()
 
     # 在所有文件处理完后，输出处理过的文件列表
     print("Processed files:")
