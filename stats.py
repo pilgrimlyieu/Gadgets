@@ -9,7 +9,7 @@ import magic
 from collections import Counter
 from fnmatch import fnmatch
 
-__version__ = "v1.0.0"
+__version__ = "v1.0.1"
 __year__    = 2024
 __license__ = "MIT"
 __author__  = "Lyieu"
@@ -97,7 +97,7 @@ Copyright (c) {__year__} {__author__} under {__license__} license.
         metavar="format",
         type=str,
         default="",
-        help='The file formats to process. Use \',\' to separate multiple formats(e.g. "-f txt,md").'
+        help='The file formats to process. Use \',\' to separate multiple formats (e.g. "-f txt,md").'
     )
     parser.add_argument(
         '-n', '--number',
@@ -131,11 +131,17 @@ Copyright (c) {__year__} {__author__} under {__license__} license.
         help='Ignore case when matching.'
     )
     parser.add_argument(
+        '-p', '--display-percent',
+        action='store_true',
+        default=False,
+        help='Display the percentage of occurrences for each character.'
+    )
+    parser.add_argument(
         '-t', '--timeout',
         metavar="seconds",
         type=int,
         default=60,
-        help='The maximum time to process a file.'
+        help='The maximum time to process a file. (default: 60)'
     )
     parser.add_argument(
         '-v', '--verbose',
@@ -157,7 +163,7 @@ Copyright (c) {__year__} {__author__} under {__license__} license.
         help='The output file.'
     )
     parser.add_argument(
-        'paths',
+        'path',
         nargs='+',
         type=str,
         default="",
@@ -190,7 +196,7 @@ def main():
 
     results = []
     processed_files = []
-    for path in args.paths:
+    for path in args.path:
         if os.path.isfile(path):
             process_file(path, args.expression, args.library, not args.show_space, args.case_insensitive, args.verbose, results, processed_files)
         elif os.path.isdir(path):
@@ -201,13 +207,32 @@ def main():
     most_common.sort(key=lambda x: (x[1], x[0]) if args.reverse else (-x[1], x[0]))
 
     f = open(args.output, 'w', encoding='utf-8') if args.output else sys.stdout
+    last_count = None
+    j = 0
+    chars_count = 0
+    chars_sum = sum(count for _, count in most_common) if args.display_percent else 0
+    if args.display_percent:
+        print(f"{'Rank':<5}\t{'Rank (tie)':<10}\t{'Character':<10}\t{'Count':<10}\t{'Percent':<10}", file=f)
+    else:
+        print(f"{'Rank':<5}\t{'Rank (tie)':<10}\t{'Character':<10}\t{'Count':<10}", file=f)
     for i, (char, count) in enumerate(most_common, start=1):
+        chars_count += 1
+        if count != last_count:
+            j = i
+        last_count = count
         escape_dict = {" ": r"\s", "\n": r"\n", "\t": r"\t", "\r": r"\r", "\f": r"\f", "\v": r"\v", "\b": r"\b"}
         char = escape_dict.get(char, char)
-        print(f"{i}\t{char}\t{count}", file=f)
+        if args.display_percent:
+            percent = count / chars_sum * 100
+            print(f"{i:<5}\t{j:<10}\t{char:<10}\t{count:<10}\t{percent:.4f}%", file=f)
+        else:
+            chars_sum += count
+            print(f"{i:<5}\t{j:<10}\t{char:<10}\t{count:<10}", file=f)
     if args.output:
         f.close()
 
+    print(f"Total characters: {chars_count}")
+    print(f"Total occurrences: {chars_sum}\n")
     print("Processed files:")
     for file in processed_files:
         print(file)
