@@ -9,7 +9,7 @@ import magic
 from collections import Counter
 from fnmatch import fnmatch
 
-__version__ = "v1.0.1"
+__version__ = "v1.0.2"
 __year__    = 2024
 __license__ = "MIT"
 __author__  = "Lyieu"
@@ -77,20 +77,35 @@ libraries:
 Copyright (c) {__year__} {__author__} under {__license__} license.
 ''',
                         formatter_class=argparse.RawTextHelpFormatter)
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
+    char_list_group = parser.add_mutually_exclusive_group()
+    count_range_group = parser.add_mutually_exclusive_group()
+    char_list_group.add_argument(
         '-e', '--expression',
         metavar="regex",
         type=str,
         default="",
         help='The regular expression to match.'
     )
-    group.add_argument(
+    char_list_group.add_argument(
         '-l', '--library',
         metavar="library",
         type=str,
         choices=libraries.keys(),
         help='The character set library to use.'
+    )
+    count_range_group.add_argument(
+        '-n', '--number',
+        metavar="number",
+        type=int,
+        default=0,
+        help='The number of most common characters to display.'
+    )
+    count_range_group.add_argument(
+        '-a', '--range',
+        metavar="range",
+        type=str,
+        default="",
+        help='The range("n" or "m,n") of counts to display. "n" means count >= n(default) or <= n("-r" is on).'
     )
     parser.add_argument(
         '-f', '--format',
@@ -98,13 +113,6 @@ Copyright (c) {__year__} {__author__} under {__license__} license.
         type=str,
         default="",
         help='The file formats to process. Use \',\' to separate multiple formats (e.g. "-f txt,md").'
-    )
-    parser.add_argument(
-        '-n', '--number',
-        metavar="number",
-        type=int,
-        default=0,
-        help='The number of most common characters to display.'
     )
     parser.add_argument(
         '-r', '--reverse',
@@ -205,6 +213,14 @@ def main():
     counter = Counter(results)
     most_common = counter.most_common(args.number if args.number > 0 else None)
     most_common.sort(key=lambda x: (x[1], x[0]) if args.reverse else (-x[1], x[0]))
+
+    if args.range:
+        range_values = list(map(int, args.range.split(',')))
+        if len(range_values) == 1:
+            filter_func = (lambda x: x[1] <= range_values[0]) if args.reverse else (lambda x: x[1] >= range_values[0])
+        else:
+            filter_func = lambda x: range_values[0] <= x[1] <= range_values[1]
+        most_common = list(filter(filter_func, most_common))
 
     f = open(args.output, 'w', encoding='utf-8') if args.output else sys.stdout
     last_count = None
