@@ -9,7 +9,7 @@ import magic
 from collections import Counter
 from fnmatch import fnmatch
 
-__version__ = "v1.0.2"
+__version__ = "v1.0.3"
 __year__    = 2024
 __license__ = "MIT"
 __author__  = "Lyieu"
@@ -228,9 +228,9 @@ def main():
     chars_count = 0
     chars_sum = sum(count for _, count in most_common) if args.display_percent else 0
     if args.display_percent:
-        print(f"{'Rank':<5}\t{'Rank (tie)':<10}\t{'Character':<10}\t{'Count':<10}\t{'Percent':<10}", file=f)
+        print(f"{'Rank':<5}\t{'Tie':<5}\t{'Char':<5}\t{'Count':<5}\t{'Percent':<10}", file=f)
     else:
-        print(f"{'Rank':<5}\t{'Rank (tie)':<10}\t{'Character':<10}\t{'Count':<10}", file=f)
+        print(f"{'Rank':<5}\t{'Tie':<5}\t{'Char':<5}\t{'Count':<5}", file=f)
     for i, (char, count) in enumerate(most_common, start=1):
         chars_count += 1
         if count != last_count:
@@ -240,10 +240,10 @@ def main():
         char = escape_dict.get(char, char)
         if args.display_percent:
             percent = count / chars_sum * 100
-            print(f"{i:<5}\t{j:<10}\t{char:<10}\t{count:<10}\t{percent:.4f}%", file=f)
+            print(f"{i:<5}\t{j:<5}\t{char:<5}\t{count:<5}\t{percent:.4f}%", file=f)
         else:
             chars_sum += count
-            print(f"{i:<5}\t{j:<10}\t{char:<10}\t{count:<10}", file=f)
+            print(f"{i:<5}\t{j:<5}\t{char:<5}\t{count:<5}", file=f)
     if args.output:
         f.close()
 
