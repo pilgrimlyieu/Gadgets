@@ -9,7 +9,7 @@ import magic
 from collections import Counter
 from fnmatch import fnmatch
 
-__version__ = "v1.0.3"
+__version__ = "v1.1.0"
 __year__    = 2024
 __license__ = "MIT"
 __author__  = "Lyieu"
@@ -139,10 +139,11 @@ Copyright (c) {__year__} {__author__} under {__license__} license.
         help='Ignore case when matching.'
     )
     parser.add_argument(
-        '-p', '--display-percent',
-        action='store_true',
-        default=False,
-        help='Display the percentage of occurrences for each character.'
+        '-s', '--style',
+        action='store',
+        metavar='style_options',
+        default='',
+        help='Set the display style of statistics.'
     )
     parser.add_argument(
         '-t', '--timeout',
@@ -202,6 +203,12 @@ def main():
 
     file_formats = args.format.split(',') if args.format else []
 
+    style_user_options = list(args.style)
+    style_options = {
+        "percent": 'p' in style_user_options,
+        "thousands": 't' in style_user_options,
+    }
+
     results = []
     processed_files = []
     for path in args.path:
@@ -226,8 +233,8 @@ def main():
     last_count = None
     j = 0
     chars_count = 0
-    chars_sum = sum(count for _, count in most_common) if args.display_percent else 0
-    if args.display_percent:
+    chars_sum = sum(count for _, count in most_common) if style_options["percent"] else 0
+    if style_options["percent"]:
         print(f"{'Rank':<5}\t{'Tie':<5}\t{'Char':<5}\t{'Count':<5}\t{'Percent':<10}", file=f)
     else:
         print(f"{'Rank':<5}\t{'Tie':<5}\t{'Char':<5}\t{'Count':<5}", file=f)
@@ -238,17 +245,25 @@ def main():
         last_count = count
         escape_dict = {" ": r"\s", "\n": r"\n", "\t": r"\t", "\r": r"\r", "\f": r"\f", "\v": r"\v", "\b": r"\b"}
         char = escape_dict.get(char, char)
-        if args.display_percent:
+        if style_options["percent"]:
             percent = count / chars_sum * 100
-            print(f"{i:<5}\t{j:<5}\t{char:<5}\t{count:<5}\t{percent:.4f}%", file=f)
+            if style_options["thousands"]:
+                print(f"{i:<5,}\t{j:<5,}\t{char:<5}\t{count:<5,}\t{percent:.4f}%", file=f)
+            else:
+                print(f"{i:<5}\t{j:<5}\t{char:<5}\t{count:<5}\t{percent:.4f}%", file=f)
         else:
             chars_sum += count
-            print(f"{i:<5}\t{j:<5}\t{char:<5}\t{count:<5}", file=f)
+            if style_options["thousands"]:
+                print(f"{i:<5,}\t{j:<5,}\t{char:<5}\t{count:<5,}", file=f)
+            else:
+                print(f"{i:<5}\t{j:<5}\t{char:<5}\t{count:<5}", file=f)
     if args.output:
         f.close()
 
-    print(f"Total characters: {chars_count}")
-    print(f"Total occurrences: {chars_sum}\n")
+    if style_options["thousands"]:
+        print(f"Total characters: {chars_count:,}\nTotal occurrences: {chars_sum:,}\n")
+    else:
+        print(f"Total characters: {chars_count}\nTotal occurrences: {chars_sum}\n")
     print("Processed files:")
     for file in processed_files:
         print(file)
